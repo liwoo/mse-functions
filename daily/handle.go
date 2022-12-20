@@ -3,39 +3,64 @@ package function
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
-	"strings"
+	"os"
+	"time"
+
+	"github.com/joho/godotenv"
+	"github.com/pdftables/go-pdftables-api/pkg/client"
 )
 
-// Handle an HTTP Request.
 func Handle(ctx context.Context, res http.ResponseWriter, req *http.Request) {
-	/*
-	 * YOUR CODE HERE
-	 *
-	 * Try running `go test`.  Add more test as you code in `handle_test.go`.
-	 */
+	err := godotenv.Load()
 
-	fmt.Println("Received request")
-	fmt.Println(prettyPrint(req))      // echo to local output
-	fmt.Fprintf(res, prettyPrint(req)) // echo to caller
-}
-
-func prettyPrint(req *http.Request) string {
-	b := &strings.Builder{}
-	fmt.Fprintf(b, "%v %v %v %v\n", req.Method, req.URL, req.Proto, req.Host)
-	for k, vv := range req.Header {
-		for _, v := range vv {
-			fmt.Fprintf(b, "  %v: %v\n", k, v)
-		}
+	if err != nil {
+		fmt.Println(err)
 	}
 
-	if req.Method == "POST" {
-		req.ParseForm()
-		fmt.Fprintln(b, "Body:")
-		for k, v := range req.Form {
-			fmt.Fprintf(b, "  %v: %v\n", k, v)
-		}
+	scraper := CreateScraper(
+		os.Getenv("MSE_URL"),
+		os.Getenv("RAW_PDF_PATH"),
+		os.Getenv("RAW_CSV_PATH"),
+		os.Getenv("ERROR_FILE_PATH"),
+		os.Getenv("PDFTABLES_API_KEY"),
+		os.Getenv("CLEANED_CSV_PATH"),
+		os.Getenv("CLEANED_JSON_PATH"),
+		os.Getenv("DB_CONNECTION_STRING"))
+
+	var Client = http.Client{
+		CheckRedirect: func(r *http.Request, via []*http.Request) error {
+			r.URL.Opaque = r.URL.Path
+			return nil
+		},
 	}
 
-	return b.String()
+	var clientCSV = client.Client{
+		APIKey:     os.Getenv("API_KEY"),
+		HTTPClient: http.DefaultClient,
+	}
+	date := time.Now()
+	var current = fmt.Sprint(date.Day(), date.Month(), date.Year())
+	var downloader = MSEPdfDownloader{
+		FileUrl:     fmt.Sprint(scraper.DownloadUrlTemplate, current),
+		FileName:    fmt.Sprint(scraper.PdfPath, current, ".pdf"),
+		FileNameCSV: fmt.Sprint(scraper.CsvPath, current, ".csv"),
+		Client:      Client,
+		CsvClient:   &clientCSV,
+	}
+
+	// Download
+	size, err := downloader.downloadPdf()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = downloader.ConvertToCSV(size)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	// Clean
+	// Save
 }
