@@ -1,0 +1,26 @@
+specVersion: 0.34.0
+name: daily
+runtime: go
+registry: ""
+image: ""
+imageDigest: ""
+created: 2022-12-20T22:07:36.3017703+02:00
+invocation:
+  format: http
+build:
+  buildpacks:
+  - paketo-buildpacks/go-dist
+  - ghcr.io/boson-project/go-function-buildpack:tip
+  builder: pack
+  buildEnvs: []
+run:
+  volumes: []
+  envs: []
+deploy:
+  namespace: ""
+  annotations: {}
+  options: {}
+  labels: []
+  healthEndpoints:
+    liveness: /health/liveness
+    readiness: /health/readiness
