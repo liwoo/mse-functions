@@ -50,7 +50,7 @@ type CompanyModel struct {
 	NAME    string
 }
 
-func (u MSESaver) Perform() {
+func (u MSESaver) Save() {
 	rows, codes, err := csvToArray(u.FileUrl)
 
 	if err != nil {

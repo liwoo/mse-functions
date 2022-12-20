@@ -8,8 +8,12 @@ import (
 	"os"
 	"time"
 
+	"database/sql"
 	"github.com/joho/godotenv"
 	"github.com/pdftables/go-pdftables-api/pkg/client"
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/pgdialect"
+	"github.com/uptrace/bun/driver/pgdriver"
 )
 
 func Handle(ctx context.Context, res http.ResponseWriter, req *http.Request) {
@@ -40,8 +44,16 @@ func Handle(ctx context.Context, res http.ResponseWriter, req *http.Request) {
 		APIKey:     os.Getenv("API_KEY"),
 		HTTPClient: http.DefaultClient,
 	}
+
+	var pgconn *pgdriver.Connector = pgdriver.NewConnector(pgdriver.WithDSN(scraper.DBConnectionString))
+	psdb := sql.OpenDB(pgconn)
+	db := bun.NewDB(psdb, pgdialect.New())
+
+	// TODO: Test the DB connection here before going forward
+
 	date := time.Now()
 	var current = fmt.Sprint(date.Day(), date.Month(), date.Year())
+	// TODO: Scrap current file from saver
 	var downloader = MSEPdfDownloader{
 		FileUrl:     fmt.Sprint(scraper.DownloadUrlTemplate, current),
 		FileName:    fmt.Sprint(scraper.PdfPath, current, ".pdf"),
@@ -61,6 +73,26 @@ func Handle(ctx context.Context, res http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	// Clean
+	var cleaner = MSECsvCleaner{
+		FileUrl:      downloader.FileNameCSV,
+		ErrorPath:    scraper.ErrorPath,
+		CleanCsvPath: scraper.CleanedCSVPath,
+	}
+
+	data, err := cleaner.Clean()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Save
+	var saver = MSESaver{
+		FileUrl:   data.file,
+		ErrorPath: scraper.ErrorPath,
+		Db:        db,
+	}
+
+	saver.Save()
 }

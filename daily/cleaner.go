@@ -37,6 +37,7 @@ type DailyCompanyRate struct {
 type CleanedData struct {
 	dailyRates []DailyCompanyRate
 	date       string
+	file	   string
 	errors     []string
 }
 
@@ -46,18 +47,20 @@ type MSECsvCleaner struct {
 	CleanCsvPath string
 }
 
-func (u MSECsvCleaner) Clean() {
-	data, err := Clean(u.FileUrl, u.ErrorPath, u.CleanCsvPath)
+func (u MSECsvCleaner) Clean() (*CleanedData, error) {
+	data, err := clean(u.FileUrl, u.ErrorPath, u.CleanCsvPath)
 	if err != nil {
-		log.Println(err)
+		return nil, err
 	} else {
 		if len(data.errors) > 0 {
-			log.Println("Cleaner has errors, ", data.errors)
+			return nil, errors.New(fmt.Sprint("Cleaner has errors, ", data.errors))
 		}
+
+		return data, nil
 	}
 }
 
-func Clean(csvFile string, errorPath string, cleanCSVPath string) (*CleanedData, error) {
+func clean(csvFile string, errorPath string, cleanCSVPath string) (*CleanedData, error) {
 	fmt.Println("Cleaning file: ", csvFile)
 	var rates []DailyCompanyRate
 	var cleaningErrors []string
@@ -135,8 +138,11 @@ func Clean(csvFile string, errorPath string, cleanCSVPath string) (*CleanedData,
 		}
 	}
 
+	var cleanedFile = fmt.Sprintf("%s%s.csv", cleanCSVPath, strings.ReplaceAll(date, "/", "-"))
+
 	err = func() error {
-		file, err := os.Create(fmt.Sprintf("%s%s.csv", cleanCSVPath, strings.ReplaceAll(date, "/", "-")))
+		file, err := os.Create(cleanedFile)
+
 		if err != nil {
 			return err
 		}
@@ -170,6 +176,7 @@ func Clean(csvFile string, errorPath string, cleanCSVPath string) (*CleanedData,
 	return &CleanedData{
 		dailyRates: rates,
 		date:       date,
+		file: cleanedFile,
 		errors:     cleaningErrors,
 	}, nil
 }
