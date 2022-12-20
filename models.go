@@ -1,4 +1,4 @@
-package main
+package function
 
 import "github.com/uptrace/bun"
 

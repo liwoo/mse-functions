@@ -1,4 +1,4 @@
-package main
+package function
 
 import (
 	"context"
@@ -16,41 +16,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/maps"
 
-	// "github.com/oiime/logrusbun"
-	// "github.com/sirupsen/logrus"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
 )
-
-func main() {
-	err := godotenv.Load()
-
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	var pgconn *pgdriver.Connector = pgdriver.NewConnector(pgdriver.WithDSN(os.Getenv("DB_CONNECTION_STRING")))
-	psdb := sql.OpenDB(pgconn)
-	db := bun.NewDB(psdb, pgdialect.New())
-
-	// TODO: Remove in production
-	log := logrus.New()
-	log.Level = logrus.DebugLevel
-	db.AddQueryHook(logrusbun.NewQueryHook(logrusbun.QueryHookOptions{
-		LogSlow:    time.Second,
-		Logger:     log,
-		QueryLevel: logrus.DebugLevel,
-		ErrorLevel: logrus.ErrorLevel,
-		SlowLevel:  logrus.WarnLevel,
-	}))
-
-	data, _ := generateGraphs(db)
-
-	jsnStr, _ := json.Marshal(data)
-	fmt.Println(string(jsnStr))
-	saveStats(db, data)
-}
 
 // Handle an HTTP Request.
 func Handle(ctx context.Context, res http.ResponseWriter, req *http.Request) {
