@@ -1,23 +1,23 @@
 specVersion: 0.34.0
-name: mse-funcs
+name: mse
 runtime: go
-registry: ""
-image: ""
+registry: liwoo/mse-scraper
+image: liwoo/mse-scraper/mse:latest
 imageDigest: ""
-created: 2022-12-19T23:38:54.690656+02:00
+created: 2022-12-13T15:28:29.0871788+02:00
 invocation:
   format: http
 build:
   buildpacks:
   - paketo-buildpacks/go-dist
   - ghcr.io/boson-project/go-function-buildpack:tip
-  builder: ""
+  builder: pack
   buildEnvs: []
 run:
   volumes: []
   envs: []
 deploy:
-  namespace: ""
+  namespace: default
   annotations: {}
   options: {}
   labels: []
